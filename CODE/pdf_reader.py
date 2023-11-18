@@ -38,6 +38,8 @@ class PDFReader:
         _ = self.extract_pdf()
         sekcje = list(PDFReader.read_sections_template()["nazwa_sekcji"])
 
+        configs = []
+
         # Filters to detect headlines
         size_thresh = self.get_size_filter(self.sizes)
         max_size = self.get_size_filter(self.sizes, 1)
@@ -59,22 +61,29 @@ class PDFReader:
                 sections_present = set(self.find_sections_by_name(sekcje, text) + self.find_sections_by_id(text))
                 # sekcje = list(set(sekcje) - sections_present)
                 if len(sections_present)>0:
-                    for sekcja in sections_present:
-                        ile[sekcja]+=1
+
+                    # Temporary statistics
+                    ile[tuple(sections_present)]+=1
+                    # for sekcja in sections_present:
+                    #     ile[sekcja]+=1
+                    configs.append((s["size"], s["color"], s["font"]))
+
+
                     if_print = True
                     is_header = True
                     print("________")
                     print(sections_present)
-                    print(text[:1])
+                    print(text)
                     counter+=1
                     print(counter)
             else:
                 is_header = False
         print(ile)
+        print("_____________")
+        print(Counter(configs))
         return 
 
     def get_size_filter(self, sizes: list, quantile: float = 0.8):
-        print(quantile)
         return pd.Series(sizes).quantile(quantile)
     
     def get_color_filter(self, colors: list):
@@ -94,20 +103,25 @@ class PDFReader:
         sections_present = []
         for letter in all_letters:
             for i in range(1, 6):
-                section = f'{letter}.{i}'
-                if len(re.findall(section, text))>0:
-                    sections_present.append(section)
-                for j in range(1, 12):
-                    section = f'{letter}.{i}.{j}'
+                for comb in ["", ".", " .", " ",". "]:
+                    section = f'{letter}{comb}{i}'
                     if len(re.findall(section, text))>0:
                         sections_present.append(section)
+
+                    section_alt = f'{letter}. {i}'
+                    if len(re.findall(section_alt, text))>0:
+                        sections_present.append(section_alt)
+                    for j in range(1, 12):
+                        section = f'{letter}.{i}.{j}'
+                        if len(re.findall(section, text))>0:
+                            sections_present.append(section)
         return sections_present
 
 
 def main():
     pdf_reader = PDFReader("2022-SFCR-TUIR-Sprawozdanie-o-wyplacalnosci-i-kondycji-finansowej.pdf")
     pdf_reader2 = PDFReader("SFCR NN TUNZ 2021.pdf")
-    pdf_reader.read_text()
+    pdf_reader2.read_text()
 
     # text_content = text_content.replace(".", " ")
     text_content = re.sub(r'\s+', ' ', text_content)
