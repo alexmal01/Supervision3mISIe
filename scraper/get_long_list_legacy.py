@@ -50,9 +50,13 @@ class Scraper:
         """
         html_data = self.getdata(website_link)
         if html_data == "errorXDXD":
-            return dict()
+            return 
 
-        soup = BeautifulSoup(html_data, "html.parser")
+        try:
+            soup = BeautifulSoup(html_data, "html.parser")
+        except:
+            return
+
         for link in soup.find_all("a", href=True):
             # Include all href that do not start with website link but with "/"
             adjusted_link = str(link["href"])
@@ -67,7 +71,7 @@ class Scraper:
                     self.long_list[adjusted_link] = False
                 else:
                     continue
-
+    
 
     def thread_function(self, urls, id):
         
@@ -83,9 +87,13 @@ class Scraper:
             
             base_url = url[:url.find("/", 8)+1]
             # print("base_url =", base_url)
+            # dont check if link ends in .pdf
+            if url.endswith(".pdf"):
+                self.long_list[url] = True
+                continue
             self.get_links(url, base_url)
             
-
+        
             # count number of links that have not been checked yet
             not_checked_in_list = len(self.long_list) - sum(self.long_list.values()) 
             iterations = 0
@@ -94,19 +102,26 @@ class Scraper:
             while not_checked_in_list != 0:
                 iterations += 1
 
-                # link to be checked
-                current_link = list(self.long_list.keys())[list(self.long_list.values()).index(False)]         
-                print("current_link =", current_link)
+                # link to be checked starting with url
+                
+                # get list of links that start with url
+                not_checked = {link: is_true for link, is_true in self.long_list.items() if link.startswith(url)}
+                try:
+                    current_link = list(not_checked.keys())[list(not_checked.values()).index(False)]      
+                except:
+                    print("error")
+                    break   
+               
 
                 # set current link as visited
                 self.long_list[current_link] = True
                 self.get_links(current_link, base_url)
 
-
                 # Count number of non-values and set counter to 0 if there are no values within the dictionary equal to the string "Not-checked"
                 not_checked_in_list = len(self.long_list) - sum(self.long_list.values()) 
                 # Print some statements
                 print("")
+                print("CURRENT LINK =", current_link)
                 print("THIS IS LOOP ITERATION NUMBER", iterations)
                 print("LENGTH OF DICTIONARY WITH LINKS =", len(self.long_list))
                 print("NUMBER OF 'Not-checked' LINKS = ", not_checked_in_list)
@@ -120,7 +135,7 @@ class Scraper:
                     a_file = open(f"scraper/links_to_be_scraped/data{id}.json", "w")
                     json.dump(self.long_list, a_file)
                     a_file.close()
-                if (now - start > 3600/4):
+                if (now - start > 3600/3):
                     print("\n\n\n wywalane jest\n\n\n")
                     break
 
@@ -137,6 +152,12 @@ urls_per_thread = 6
 for i in range(0, len(urls), urls_per_thread):
     t = threading.Thread(target=runner, args=(urls[i:i+urls_per_thread], i))
     t.start()
+
+
+
+
+
+
 
 
 
