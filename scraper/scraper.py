@@ -37,8 +37,11 @@ def scrape(links, czas=60):
         pdf_links = soup.select("a[href$='.pdf']")
         # filter pdf_links to only include links with 'SFCR' in their name
         pdf_links = [link for link in pdf_links if 'SFCR' in link.text.upper()]
-
+        start_time = time.time()
         for sublink in pdf_links:
+            current_time = time.time()
+            if current_time - start_time > czas:
+                break
             # Name the pdf files using the last portion of each link which are unique in this case
 
             filename = os.path.join(folder_location, sublink['href'].split('/')[-1])
