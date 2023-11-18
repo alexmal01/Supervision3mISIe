@@ -159,7 +159,7 @@ def generate_merged_tables(n_clicks, selected_plants, selected_periods):
         merged_df = pd.concat(data, axis=0)#, keys=[f'{plant}_{available_periods[i]}' for plant in selected_plants for i in range(selected_periods[0], selected_periods[1] + 1)])
         # print(merged_df.to_dict('records'))
         tables.append(html.Div([
-            html.H4(f'{file_type}'),
+            #html.H4(f'{file_type}'),
             dash_table.DataTable(
                 id=f'table-type{file_type}',
                 columns=[{'name': col, 'id': col} for col in merged_df.columns],
