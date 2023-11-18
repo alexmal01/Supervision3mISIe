@@ -6,10 +6,14 @@ import json
 import time
 import re
 
-def scrape(links, czas=60):
+def scrape(links, czas=60, skipped_links = []):
     total = time.perf_counter()
     start = time.perf_counter()
+    # links = links.reset_index(drop=True)
     idx = 0
+    links_keep = set(links)
+    links = list(set(links).difference(set(skipped_links)))
+    print(links)
     for i in range(len(links)):
         link = links[idx]
         if 'http' not in link:
@@ -28,6 +32,10 @@ def scrape(links, czas=60):
         #     start = time.perf_counter()
 
         # print("total czas: ", round(time.perf_counter()-total, 2), "czas: ", round(time.perf_counter() - start, 2), " index: " ,str(idx) + "/" + str(len(links)), ": ", link)
+        print(link + "\n")
+
+        link = link.replace(" ", "")
+        link = link.replace("%20", "")
         response = requests.get(link)
         folder_location = r"download/" + link[7:17]
 

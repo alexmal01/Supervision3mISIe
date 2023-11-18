@@ -12,7 +12,7 @@ def get_links(df):
     scrape(links)
 
 # run scrape function using threading library - provide different links to each thread
-def run_multi(df):
+def run_multi(df, skipped_links = []):
     links = df['link'].tolist()
     threads = []
     for i in range(0, len(links), 20):
