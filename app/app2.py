@@ -7,21 +7,23 @@ from dash.dependencies import State
 from dash.exceptions import PreventUpdate
 from datetime import datetime, timedelta
 import random
+from dash_bootstrap_templates import load_figure_template
+import dash_bootstrap_components as dbc
 
 # Function to load data from CSV files
 def load_data(plant, period, file_type):
-    file_path = os.path.join(base_directory, plant, period, f'nazwa_{file_type}.csv')
+    file_path = os.path.join(base_directory, plant, period, f'{file_type}.csv')
     df = pd.read_csv(file_path)
     #print(df)
     return df
 
-# Sample data generation
 base_directory = 'sample_data'
-available_plants = ['Plant1', 'Plant2', 'Plant3']
-available_periods = ['Period1', 'Period2', 'Period3']
+available_plants = ['Zaklad1', 'Zaklad2', 'Zaklad3']
+available_periods = ['2020', '2021', '2022']
 
 # Dash app initialization
-app = dash.Dash(__name__)
+app = dash.Dash(external_stylesheets=[dbc.themes.MINTY])
+load_figure_template('LUX')
 
 # Define the title and subtitle
 title = html.H1("Najwiekszy Polski Cracker", style={'textAlign': 'center'})
@@ -32,8 +34,8 @@ app.layout = html.Div([
     title,
     subtitle,
     dcc.Tabs([
-        dcc.Tab(label='Merged Tables', children=[
-            html.Label("Select Plants:"),
+        dcc.Tab(label='Przegląd SFCR', children=[
+            html.Label("Wybierz zakłady:"),
             dcc.Dropdown(
                 id='plant-dropdown',
                 options=[{'label': plant, 'value': plant} for plant in available_plants],
@@ -41,7 +43,7 @@ app.layout = html.Div([
                 value=[available_plants[0]]
             ),
     
-            html.Label("Select Periods:"),
+            html.Label("Wybierz okres czasu:"),
             dcc.RangeSlider(
                 id='period-slider',
                 min=0,
@@ -50,16 +52,16 @@ app.layout = html.Div([
                 value=[0, len(available_periods) - 1]
             ),
     
-            html.Button("Generate Merged Tables", id='generate-tables-button'),
+            html.Button("Pobierz dane", id='generate-tables-button'),
     
             dcc.Tabs([
-                dcc.Tab(label='Table Type 1', id='table-type1-tab'),
-                dcc.Tab(label='Table Type 2', id='table-type2-tab'),
-                dcc.Tab(label='Table Type 3', id='table-type3-tab')
+                dcc.Tab(label='Dane jakościowe', id='table-type1-tab'),
+                dcc.Tab(label='Tabele obligatoryjne', id='table-type2-tab'),
+                dcc.Tab(label='Dane dla weryfikacji kompletności SFCR', id='table-type3-tab')
             ]),
         ]),
     
-        dcc.Tab(label='Compare Files', children=[
+        dcc.Tab(label='Porównanie SFCR', children=[
             html.Label("Select File 1:"),
             dcc.Dropdown(
                 id='file1-dropdown',
@@ -116,7 +118,7 @@ app.layout = html.Div([
                 labelStyle={'display': 'block'}
             ),
     
-            html.Button("Compare Files", id='compare-files-button'),
+            html.Button("Porównaj", id='compare-files-button'),
     
             html.Div(id='comparison-output')
         ]),
@@ -136,15 +138,18 @@ def generate_merged_tables(n_clicks, selected_plants, selected_periods):
         raise PreventUpdate
     
     tables = []
-
-    for file_type in range(1, 4):
+    file_types = ['Struktura dla danych jakościowych', 'Struktura dla obligatoryjnych tabel', 'Struktura dla danych dla weryfikacji kompletności SFCR']
+    
+    for file_type in file_types:
         data = []
         for plant in selected_plants:
             plant_data = []
             for period_index in range(selected_periods[0], selected_periods[1] + 1):
-                df = load_data(plant, available_periods[period_index], file_type)
-                df['Plant'] = plant  # Add a column for plant name
-                plant_data.append(df)
+                # check if path exists
+                if os.path.exists(os.path.join(base_directory, plant, available_periods[period_index], f'{file_type}.csv')):
+                    df = load_data(plant, available_periods[period_index], file_type)
+                    df['Zaklad'] = plant  # Add a column for plant name
+                    plant_data.append(df)
             
             # Concatenate data for the current plant and file type
             plant_data_concatenated = pd.concat(plant_data, axis=0, ignore_index=True)
@@ -154,7 +159,7 @@ def generate_merged_tables(n_clicks, selected_plants, selected_periods):
         merged_df = pd.concat(data, axis=0)#, keys=[f'{plant}_{available_periods[i]}' for plant in selected_plants for i in range(selected_periods[0], selected_periods[1] + 1)])
         # print(merged_df.to_dict('records'))
         tables.append(html.Div([
-            html.H4(f'Table Type {file_type}'),
+            html.H4(f'{file_type}'),
             dash_table.DataTable(
                 id=f'table-type{file_type}',
                 columns=[{'name': col, 'id': col} for col in merged_df.columns],
