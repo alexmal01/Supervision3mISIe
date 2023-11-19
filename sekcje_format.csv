@@ -1,0 +1,38 @@
+﻿id;id_sekcji_nadrzednej;id_sekcji;nazwa_sekcji
+1;NULL;NULL;Podsumowanie
+2;NULL;A.;Działalność i wyniki operacyjne
+3;2;A.1;Działalność
+4;2;A.2;Wynik z działalności ubezpieczeniowej
+5;2;A.3;Wynik z działalności lokacyjnej
+6;2;A.4;Wyniki z pozostałych rodzajów działalności
+7;2;A.5;Wszelkie inne informacje
+8;NULL;B.;System zarządzania
+9;8;B.1;Informacje ogólne o systemie zarządzania
+10;8;B.2;Wymogi dotyczące kompetencji i reputacji
+11;8;B.3;System zarządzania ryzykiem, w tym własna ocena ryzyka i wypłacalności
+12;8;B.4;System kontroli wewnętrznej
+13;8;B.5;Funkcja audytu wewnętrznego
+14;8;B.6;Funkcja aktuarialna
+15;8;B.7;Outsourcing
+16;8;B.8;Wszelkie inne informacje
+17;NULL;C.;Profil ryzyka
+18;17;C.1;Ryzyko aktuarialne
+19;17;C.2;Ryzyko rynkowe
+20;17;C.3;Ryzyko kredytowe
+21;17;C.4;Ryzyko płynności
+22;17;C.5;Ryzyko operacyjne
+23;17;C.6;Pozostałe istotne ryzyka
+24;17;C.7;Wszelkie inne informacje
+25;NULL;D.;Wycena do celów wypłacalności
+26;25;D.1;Aktywa
+27;25;D.2;Rezerwy techniczno-ubezpieczeniowe
+28;25;D.3;Inne zobowiązania
+29;25;D.4;Alternatywne metody wyceny
+30;25;D.5;Wszelkie inne informacje
+31;NULL;E.;Zarządzanie kapitałem
+32;31;E.1;Środki własne
+33;31;E.2;Kapitałowy wymóg wypłacalności i minimalny wymóg kapitałowy
+34;31;E.3;Zastosowanie podmodułu ryzyka cen akcji opartego na duracji do obliczenia kapitałowego wymogu wypłacalności
+35;31;E.4;Różnice między formułą standardową a stosowanym modelem wewnętrznym
+36;31;E.5;Niezgodność z minimalnym wymogiem kapitałowym i niezgodność z kapitałowym wymogiem wypłacalności
+37;31;E.6;Wszelkie inne informacje
