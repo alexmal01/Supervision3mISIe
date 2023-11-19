@@ -171,7 +171,6 @@ def generate_merged_tables(n_clicks, selected_plants, selected_periods):
     
     tables = []
     file_types = ['Struktura dla danych jakościowych', 'Struktura dla obligatoryjnych tabel', 'Struktura dla danych dla weryfikacji kompletności SFCR']
-    
     for file_type in file_types:
         data = []
         for plant in selected_plants:
@@ -186,9 +185,14 @@ def generate_merged_tables(n_clicks, selected_plants, selected_periods):
                     plant_data.append(df)
             
             # Concatenate data for the current plant and file type
-            plant_data_concatenated = pd.concat(plant_data, axis=0, ignore_index=True)
-            data.append(plant_data_concatenated)
-
+            if not plant_data == []:
+                plant_data_concatenated = pd.concat(plant_data, axis=0, ignore_index=True)
+                data.append(plant_data_concatenated)
+        if data == []:
+            tables.append(html.Div([
+                html.Label(f'Nie znaleziono plików dla typu: {file_type}', style={'textAlign': 'center'})
+            ]))
+            continue
         # Concatenate data for all selected plants and file type
         merged_df = pd.concat(data, axis=0)#, keys=[f'{plant}_{available_periods[i]}' for plant in selected_plants for i in range(selected_periods[0], selected_periods[1] + 1)])
         # print(merged_df.to_dict('records'))
