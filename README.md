@@ -2,6 +2,14 @@
 
 ## Moduły
 
+### Cracker
+
+Moduł do procesowania zebranych danych - tabularyzacji, wyszukiwania wzorców i rozpoznawania obiektów w plikach.
+
+### Dashboard
+
+Napisany w Dashu - służy do jasnej i przejrzystej prezentacji wyników naszej pracy. Instrukcja uruchomienia znajduje się na dole tego pliku.
+
 ### Scraper
 Moduł składa się z 2 submodułów. Napisany przy wykorzystaniu biblioteki Beautiful Soup 4 w Pythonie. 
 
