@@ -163,7 +163,7 @@ class PDFReader:
 
         def remove_duplicate_first_word(text):
             words = text.strip().split()
-            if len(words) > 1 and words[0] == words[1]:
+            if len(words) > 1 and (words[0] == words[1] or words[0]+"." == words[1]):
                 return ' '.join(words[1:])
             else:
                 return text

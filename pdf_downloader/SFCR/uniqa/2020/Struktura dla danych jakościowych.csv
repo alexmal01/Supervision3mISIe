@@ -1,0 +1,32 @@
+;ID_SEKCJA NADRZĘDNA;ID_SEKCJA;NAZWA_SEKCJI;TREŚĆ;DATA SFCR;WERSJA SFCR;KOD ZAKŁADU;KOD ZAKLADU;ID_TAB
+0;;;B3;B3. Zespół Kontroli Wewnętrznej;8.04.2021;1;1;24;150
+1;3.0;;A.1.9 A-1090 Wien  Podmiot przeprowadzający badanie statutowego sprawozdania finansowego ;Audyt sprawozdania finansowego oraz sprawozdania na temat wypłacalności i kondycji finansowej przeprowadzony został przez PricewaterhouseCoopers Polska spółka z ograniczoną odpowiedzialnością Audyt sp. k. z siedzibą w Warszawie, przy ul. Polnej 11, spółkę wpisaną na listę podmiotów uprawnionych do badania sprawozdań finansowych pod numerem 144. W imieniu podmiotu uprawnionego badanie zostało przeprowadzone pod nadzorem kluczowego biegłego rewidenta Adama Celińskiego (numer w rejestrze 90033). PricewaterhouseCoopers Polska spółka z ograniczoną odpowiedzialnością Audyt sp. k. zostało wybrane na biegłego rewidenta Towarzystwa Uchwałą nr 5 Walnego Zgromadzenia z dnia 3 sierpnia 2020 roku. PricewaterhouseCoopers Polska spółka z ograniczoną odpowiedzialnością Audyt sp. k. oraz kluczowy biegły rewident przeprowadzający badanie są niezależni od Towarzystwa w sposób określony w art. 69 ustawy z dnia 11 maja 2017 r. o biegłych rewidentach, firmach audytorskich oraz nadzorze publicznym (Dz. U. z 2017 roku, poz. 1089);8.04.2021;1;1;24;150
+2;31.0;37.0;E.6 B.8 Wszelkie inne informacje ;;8.04.2021;1;1;24;150
+3;31.0;36.0;E.5 Niezgodność z minimalnym wymogiem kapitałowym i niezgodność z kapitałowym wymogiem wypłacalności;wypłacalności;8.04.2021;1;1;24;150
+4;31.0;35.0;E.4 Różnice między formułą standardową a stosowanym modelem wewnętrznym;wewnętrznym;8.04.2021;1;1;24;150
+5;31.0;34.0;E.3 Zastosowanie podmodułu ryzyka cen akcji opartego na duracji do obliczenia kapitałowego wymogu wypłacalności;wypłacalności;8.04.2021;1;1;24;150
+6;31.0;33.0;E.2 Kapitałowy wymóg wypłacalności i minimalny wymóg kapitałowy;kapitałowy Zasady ogólne Kapitałowy wymóg wypłacalności Minimalny wymóg kapitałowy;8.04.2021;1;1;24;150
+7;31.0;32.0;E.1 Środki własne;własne Zarządzanie kapitałem Informacja o strukturze kapitału Analiza kategorii kapitału (tiering) Uzgodnienie kapitału własnego do bilansu dla celów rachunkowości;8.04.2021;1;1;24;150
+8;25.0;30.0;D.5 Wszelkie inne informacje;informacje;8.04.2021;1;1;24;150
+9;25.0;29.0;D.4 Alternatywne metody wyceny;wyceny;8.04.2021;1;1;24;150
+10;25.0;28.0;D.3 Inne zobowiązania;zobowiązania Szczegółowe zasady wyceny innych zobowiązań;8.04.2021;1;1;24;150
+11;25.0;27.0;D.2 Rezerwy techniczno-ubezpieczeniowe;techniczno-ubezpieczeniowe Zasady ogólne Najlepsze oszacowanie rezerw – BEL Korekta z tytułu zmienności Margines ryzyka Kwoty należne z umów reasekuracji Informacja na temat środków przejściowych;8.04.2021;1;1;24;150
+12;25.0;26.0;D.1 Aktywa;Aktywa Wycena według wartości godziwej Szczegółowe zasady wyceny aktywów;8.04.2021;1;1;24;150
+13;17.0;23.0;C.6 Pozostałe istotne ryzyka;ryzyka Ryzyko strategiczne Ryzyko utraty reputacji Ryzyka wschodzące;8.04.2021;1;1;24;150
+14;17.0;22.0;C.5 Ryzyko operacyjne;operacyjne Ekspozycja na ryzyko operacyjne Kontrola i ograniczenie ryzyka;8.04.2021;1;1;24;150
+15;17.0;21.0;C.4 Ryzyko płynności;płynności Ekspozycja na ryzyko płynności Kontrola i ograniczenie ryzyka C.5 Ryzyko operacyjne;8.04.2021;1;1;24;150
+16;17.0;20.0;C.3 Ryzyko kredytowe;kredytowe Ekspozycja na ryzyko kredytowe Kontrola i ograniczenie ryzyka;8.04.2021;1;1;24;150
+17;17.0;19.0;C.2 Ryzyko rynkowe;rynkowe Ekspozycja na ryzyko rynkowe Kontrola i ograniczenie ryzyka;8.04.2021;1;1;24;150
+18;17.0;18.0;C.1 Ryzyko aktuarialne;aktuarialne Ekspozycja na ryzyko aktuarialne Kontrola i ograniczenie ryzyka;8.04.2021;1;1;24;150
+19;8.0;15.0;B.7 Outsourcing;Outsourcing Umowy outsourcingu;8.04.2021;1;1;24;150
+20;8.0;14.0;B.6 Funkcja aktuarialna;aktuarialna Funkcja aktuarialna;8.04.2021;1;1;24;150
+21;8.0;13.0;B.5 Funkcja audytu wewnętrznego;wewnętrznego Funkcja audytu wewnętrznego;8.04.2021;1;1;24;150
+22;8.0;12.0;B.4 System kontroli wewnętrznej;wewnętrznej System kontroli wewnętrznej;8.04.2021;1;1;24;150
+23;8.0;11.0;B.3 System zarządzania ryzykiem, w tym własna ocena ryzyka i wypłacalności;wypłacalności System zarządzania ryzykiem Własna ocena ryzyka i wypłacalności (ORSA);8.04.2021;1;1;24;150
+24;8.0;10.0;B.2 Wymogi dotyczące kompetencji i reputacji;reputacji Proces Weryfikacji Kompetencji i Rękojmi Osób Pełniących Kluczowe Funkcje (które faktycznie zarządzają zakładem oraz pełnią inne kluczowe funkcje);8.04.2021;1;1;24;150
+25;8.0;9.0;B.1 Informacje ogólne o systemie zarządzania;zarządzania Zarządzanie Polityka wynagradzania Istotne transakcje z akcjonariuszami, osobami, które wywierają znaczący wpływ, członkami zarządu lub kierownictwem Ocena adekwatności systemu zarządzania;8.04.2021;1;1;24;150
+26;2.0;7.0;A.5 Wszelkie inne informacje;informacje;8.04.2021;1;1;24;150
+27;2.0;6.0;A.4 Wyniki z pozostałych rodzajów działalności;działalności Wynik netto;8.04.2021;1;1;24;150
+28;2.0;5.0;A.3 Wynik z działalności lokacyjnej;inwestycyjnej Wynik inwestycyjny na udziale własnym Zyski i straty ujmowane bezpośrednio w kapitale własnym Inwestycje w instrumenty sekurytyzacyjne;8.04.2021;1;1;24;150
+29;2.0;4.0;A.2 Wynik z działalności ubezpieczeniowej;ubezpieczeniowej Działalność ubezpieczeniowa według obszaru geograficznego Działalność ubezpieczeniowa według linii produktowych;8.04.2021;1;1;24;150
+30;2.0;3.0;A.1 Działalność;Działalność Informacje ogólne Informacje o Spółce Główni udziałowcy i transakcje pomiędzy jednostkami powiązanymi Informacje dotyczące działalności Najważniejsze zdarzenia operacyjne;8.04.2021;1;1;24;150
