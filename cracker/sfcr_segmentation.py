@@ -4,7 +4,6 @@ import fitz
 from collections import Counter, defaultdict
 import json
 import difflib
-import json
 import numpy as np
 from .tools import extract_file_date
 from typing import Generator
@@ -112,6 +111,7 @@ class PDFReader:
             else:
                 is_header = False
 
+
         # Dumping headers to json file
         if save_headers:
             with open("headers.json", "w") as f:
@@ -184,6 +184,7 @@ class PDFReader:
                             sections_present.append(section)
         return sections_present
     
+
     @staticmethod
     def remove_duplicate_first_word(text: str) -> str:
         """
@@ -224,9 +225,6 @@ class PDFReader:
         config_dict = {k: len(v) for k, v in config_dict.items()}
 
         df = pd.DataFrame(headers)
-        df['DATA SFCR'] = self.date
-        df['WERSJA SFCR'] = 1 # TODO
-        df['KOD ZAKŁADU'] = 1 # TODO
         df["sections_present"] = df["sections_present"].apply(lambda x: x[0])
         df["tuple"] = df.apply(lambda x: (x["size"], x["color"], x["font"]), axis=1)
         df["num_ocs"] = df["tuple"].map(config_dict)
@@ -237,18 +235,21 @@ class PDFReader:
         df['ID_SEKCJA'] = df.merge(sekcje, how="left", left_on="id_sekcji_tmp", right_on="id_sekcji")["id"]
         df['NAZWA_SEKCJI'] = df['id_sekcji_tmp'] + " "+df['NAZWA_SEKCJI']
 
+
         df['NAZWA_SEKCJI'] = df['NAZWA_SEKCJI'].apply(PDFReader.remove_duplicate_first_word)
         def skip_first_n_chars(row):
             n = len(row['NAZWA_SEKCJI'].split())
             return " ".join(row['text'].split()[max(0,n-1):])
-        df['TRESC']=df.apply(skip_first_n_chars, axis=1)
+        df['TREŚĆ']=df.apply(skip_first_n_chars, axis=1)
         df['ID_SEKCJA'] = df['ID_SEKCJA'].fillna(df['id_sekcji_tmp']+"_DEL")
         df = df.sort_values(by=["ID_SEKCJA", "num_ocs"], ascending=False)
         df = df.drop_duplicates(subset=["ID_SEKCJA"], keep="first")
         df['ID_SEKCJA'] = df['ID_SEKCJA'].apply(lambda x: np.nan if isinstance(x, str) and "_DEL" in x else x)
-        df = df.loc[:, ['ID_SEKCJA NADRZĘDNA', 'ID_SEKCJA', 'NAZWA_SEKCJI', 'TRESC']].reset_index(drop=True)
-        df.rename_axis('ID_TAB', inplace=True)
-        df.to_csv("headers.csv", header=True)
+        df = df.loc[:, ['ID_SEKCJA NADRZĘDNA', 'ID_SEKCJA', 'NAZWA_SEKCJI', 'TREŚĆ']].reset_index(drop=True)
+        df['DATA SFCR'] = self.date
+        df['WERSJA SFCR'] = 1 # TODO
+        df['KOD ZAKŁADU'] = 1 # TODO
+        return df
 
 
 
