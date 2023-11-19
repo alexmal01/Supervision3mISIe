@@ -4,7 +4,6 @@ import fitz
 from collections import Counter, defaultdict
 import json
 import difflib
-import json
 import numpy as np
 from .tools import extract_file_date
 
@@ -81,8 +80,8 @@ class PDFReader:
             else:
                 is_header = False
 
-        with open("headers.json", "w") as f:
-            json.dump(headers, f, indent=4)
+        # with open("headers.json", "w") as f:
+        #     json.dump(headers, f, indent=4)
         return headers
 
     def keyword_duplicates(keywords: list[str], texts: list[str]):
@@ -128,7 +127,7 @@ class PDFReader:
         return sections_present
     
     
-    def create_df(self, headers: dict):
+    def create_df(self, headers: dict, csv_path="Struktura dla danych jakościowych.csv"):
 
         sekcje = pd.read_csv("sekcje_format.csv", sep=";", header=0)
 
@@ -150,9 +149,6 @@ class PDFReader:
         config_dict = {k: len(v) for k, v in config_dict.items()}
 
         df = pd.DataFrame(headers)
-        df['DATA SFCR'] = self.date
-        df['WERSJA SFCR'] = 1 # TODO
-        df['KOD ZAKŁADU'] = 1 # TODO
         df["sections_present"] = df["sections_present"].apply(lambda x: x[0])
         df["tuple"] = df.apply(lambda x: (x["size"], x["color"], x["font"]), axis=1)
         df["num_ocs"] = df["tuple"].map(config_dict)
@@ -162,7 +158,7 @@ class PDFReader:
         df['ID_SEKCJA NADRZĘDNA'] = df.merge(sekcje, how="left", left_on="sekcja_nadrzedna", right_on="id_sekcji")["id"]
         df['ID_SEKCJA'] = df.merge(sekcje, how="left", left_on="id_sekcji_tmp", right_on="id_sekcji")["id"]
         df['NAZWA_SEKCJI'] = df['id_sekcji_tmp'] + " "+df['NAZWA_SEKCJI']
-#     content_df.columns = ['ID_TAB', 'DATA SFCR', 'WERSJA SFCR', 'KOD ZAKŁADU', 'ID_SEKCJA NADRZĘDNA', 'ID_SEKCJA', 'NAZWA_SECKJI', 'TREŚĆ']
+
 
 
         def remove_duplicate_first_word(text):
@@ -176,15 +172,17 @@ class PDFReader:
         def skip_first_n_chars(row):
             n = len(row['NAZWA_SEKCJI'].split())
             return " ".join(row['text'].split()[max(0,n-1):])
-        df['TRESC']=df.apply(skip_first_n_chars, axis=1)
+        df['TREŚĆ']=df.apply(skip_first_n_chars, axis=1)
         df['ID_SEKCJA'] = df['ID_SEKCJA'].fillna(df['id_sekcji_tmp']+"_DEL")
         df = df.sort_values(by=["ID_SEKCJA", "num_ocs"], ascending=False)
         df = df.drop_duplicates(subset=["ID_SEKCJA"], keep="first")
         df['ID_SEKCJA'] = df['ID_SEKCJA'].apply(lambda x: np.nan if isinstance(x, str) and "_DEL" in x else x)
-        df = df.loc[:, ['ID_SEKCJA NADRZĘDNA', 'ID_SEKCJA', 'NAZWA_SEKCJI', 'TRESC']].reset_index(drop=True)
+        df = df.loc[:, ['ID_SEKCJA NADRZĘDNA', 'ID_SEKCJA', 'NAZWA_SEKCJI', 'TREŚĆ']].reset_index(drop=True)
         df.rename_axis('ID_TAB', inplace=True)
-        print(df.columns)
-        df.to_csv("headers.csv", header=True)
+        df['DATA SFCR'] = self.date
+        df['WERSJA SFCR'] = 1 # TODO
+        df['KOD ZAKŁADU'] = 1 # TODO
+        df.to_csv(csv_path, header=True, sep=';')
 
 
 

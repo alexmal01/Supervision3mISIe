@@ -9,7 +9,7 @@ def extract_file_year(pdf_path:str) -> str:
         pdf_document = fitz.open(pdf_path)
     except:
         print("can't open document")
-        return '01.01.1970'
+        return '0000'
     year_pattern = re.compile(r'\b(?:20\d{2})\b')
     
     for page_number in range(pdf_document.page_count):
