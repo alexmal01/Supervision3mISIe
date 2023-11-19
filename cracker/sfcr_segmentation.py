@@ -150,16 +150,18 @@ class PDFReader:
         config_dict = {k: len(v) for k, v in config_dict.items()}
 
         df = pd.DataFrame(headers)
-        #  df['DATA SFCR'] = self.date
+        df['DATA SFCR'] = self.date
+        df['WERSJA SFCR'] = 1 # TODO
+        df['KOD ZAKŁADU'] = 1 # TODO
         df["sections_present"] = df["sections_present"].apply(lambda x: x[0])
         df["tuple"] = df.apply(lambda x: (x["size"], x["color"], x["font"]), axis=1)
         df["num_ocs"] = df["tuple"].map(config_dict)
-        df['nazwa_sekcji'] = df['sections_present'].map(id_name).combine_first(df['header'])
+        df['NAZWA_SEKCJI'] = df['sections_present'].map(id_name).combine_first(df['header'])
         df['id_sekcji_tmp'] = df['sections_present'].map(name_id).combine_first(df['sections_present']).apply(lambda x: x.replace(" ", "").strip())
         df['sekcja_nadrzedna'] = df["id_sekcji_tmp"].apply(lambda x: ".".join(x.split(".")[:-1])).replace({"A": "A.", "B":"B.", "C": "C.", "D": "D.", "E": "E."})
-        df['id_sekcji_nadrzednej2'] = df.merge(sekcje, how="left", left_on="sekcja_nadrzedna", right_on="id_sekcji")["id"]
-        df['id_sekcji'] = df.merge(sekcje, how="left", left_on="id_sekcji_tmp", right_on="id_sekcji")["id"]
-        df['nazwa_sekcji'] = df['id_sekcji_tmp'] + " "+df['nazwa_sekcji']
+        df['ID_SEKCJA NADRZĘDNA'] = df.merge(sekcje, how="left", left_on="sekcja_nadrzedna", right_on="id_sekcji")["id"]
+        df['ID_SEKCJA'] = df.merge(sekcje, how="left", left_on="id_sekcji_tmp", right_on="id_sekcji")["id"]
+        df['NAZWA_SEKCJI'] = df['id_sekcji_tmp'] + " "+df['NAZWA_SEKCJI']
 #     content_df.columns = ['ID_TAB', 'DATA SFCR', 'WERSJA SFCR', 'KOD ZAKŁADU', 'ID_SEKCJA NADRZĘDNA', 'ID_SEKCJA', 'NAZWA_SECKJI', 'TREŚĆ']
 
 
@@ -170,17 +172,19 @@ class PDFReader:
             else:
                 return text
 
-        df['nazwa_sekcji'] = df['nazwa_sekcji'].apply(remove_duplicate_first_word)
+        df['NAZWA_SEKCJI'] = df['NAZWA_SEKCJI'].apply(remove_duplicate_first_word)
         def skip_first_n_chars(row):
-            n = len(row['nazwa_sekcji'].split())
+            n = len(row['NAZWA_SEKCJI'].split())
             return " ".join(row['text'].split()[max(0,n-1):])
-        df['tresc']=df.apply(skip_first_n_chars, axis=1)
-        df['id_sekcji'] = df['id_sekcji'].fillna(df['id_sekcji_tmp']+"_DEL")
-        df = df.sort_values(by=["id_sekcji", "num_ocs"], ascending=False)
-        df = df.drop_duplicates(subset=["id_sekcji"], keep="first")
-        df['id_sekcji'] = df['id_sekcji'].apply(lambda x: np.nan if isinstance(x, str) and "_DEL" in x else x)
-        df = df.loc[:, ['id_sekcji_nadrzednej2', 'id_sekcji', 'nazwa_sekcji', 'tresc']].reset_index(drop=True)
-        df.to_csv("headers.csv")
+        df['TRESC']=df.apply(skip_first_n_chars, axis=1)
+        df['ID_SEKCJA'] = df['ID_SEKCJA'].fillna(df['id_sekcji_tmp']+"_DEL")
+        df = df.sort_values(by=["ID_SEKCJA", "num_ocs"], ascending=False)
+        df = df.drop_duplicates(subset=["ID_SEKCJA"], keep="first")
+        df['ID_SEKCJA'] = df['ID_SEKCJA'].apply(lambda x: np.nan if isinstance(x, str) and "_DEL" in x else x)
+        df = df.loc[:, ['ID_SEKCJA NADRZĘDNA', 'ID_SEKCJA', 'NAZWA_SEKCJI', 'TRESC']].reset_index(drop=True)
+        df.rename_axis('ID_TAB', inplace=True)
+        print(df.columns)
+        df.to_csv("headers.csv", header=True)
 
 
 
@@ -189,6 +193,7 @@ def main():
     pdf_reader = PDFReader(sfcr_file_path)
     headers = pdf_reader.get_headers_text()
     pdf_reader.create_df(headers)
+
     
 
 if __name__ == "__main__":
