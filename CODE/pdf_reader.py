@@ -3,6 +3,7 @@ import re
 import fitz
 from collections import Counter, defaultdict
 import json
+import difflib
 
 class PDFReader:
     def __init__(self, file_path):
@@ -99,8 +100,12 @@ class PDFReader:
 
     def find_sections_by_name(self, all_sections: list[str], text: str):
         sections_present = []
+
         for section in all_sections:
-            if len(re.findall(section, text))>0:
+            fuzzy_matches = difflib.get_close_matches(section, text.split(), n=3, cutoff=0.75)
+            exact_matches = re.findall(section, text)
+            all_matches = list(set(fuzzy_matches+exact_matches))
+            if len(all_matches)>0:
                 sections_present.append(section)
         return sections_present
     
@@ -122,7 +127,7 @@ class PDFReader:
 def main():
     pdf_reader = PDFReader("2022-SFCR-TUIR-Sprawozdanie-o-wyplacalnosci-i-kondycji-finansowej.pdf")
     pdf_reader2 = PDFReader("SFCR NN TUNZ 2021.pdf")
-    pdf_reader.get_headers_text()
+    headers = pdf_reader2.get_headers_text()
 
 if __name__ == "__main__":
     main()
