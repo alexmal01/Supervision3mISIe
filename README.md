@@ -17,3 +17,9 @@ Wątki odwiedzają kolejne nieodwiedzone podstrony danej wejściowej domeny z li
 #### Pobieranie PDFów
 Za pomocą słów kluczowych w linkach pobierane są odpowiednie PDFy z plikami SFCR oraz z audytami. Zapis odbywa się do uporządkowanej struktury plików oraz same nazwy plików są zgodne z wymaganiami.
 
+## Jak uruchomić aplikację:
+1. cd Supervision3mISIe
+2. pip install -r requirements.txt
+3. python app/app2.py
+4. Przejdź do http://127.0.0.1:8050/.
+5. Enjoy:)
