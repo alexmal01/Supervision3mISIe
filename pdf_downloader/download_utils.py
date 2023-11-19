@@ -109,8 +109,8 @@ def check_for_dot_issues(link):
     return link
 
 
-def get_filename(folder_location, filetype, code, name):
-    return os.path.join(folder_location, f"{filetype}_{code}_{name}.pdf")
+def get_filename(folder_location, filetype, code, name, link):
+    return os.path.join(folder_location, f"{filetype}_{code}_{name}_{hash(link)}.pdf")
 
 
 def download_pdf(link, filename):
@@ -170,7 +170,7 @@ def download_all_files(links, czas, filetype):
         code, name = get_code_and_name(df, link_base)
         print("Kod zakladu: ", code)
         print("Nazwa zakladu: ", name)
-        filename = get_filename(folder_location, filetype, code, name)
+        filename = get_filename(folder_location, filetype, code, name, link)
         print("Link to be used:", link)
         print("Filename:", filename)
         status_code = 404
