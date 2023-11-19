@@ -13,13 +13,21 @@ import dash_bootstrap_components as dbc
 # Function to load data from CSV files
 def load_data(plant, period, file_type):
     file_path = os.path.join(base_directory, plant, period, f'{file_type}.csv')
-    df = pd.read_csv(file_path)
+    if file_type == 'Struktura dla obligatoryjnych tabel':
+        sep = ';'
+        index_col = 'ID_TAB'
+    else:
+        sep = ';'
+        index_col = None
+    df = pd.read_csv(file_path, sep, index_col=index_col)
     #print(df)
     return df
 
-base_directory = 'sample_data'
-available_plants = ['Zaklad1', 'Zaklad2', 'Zaklad3']
-available_periods = ['2020', '2021', '2022']
+base_directory = 'pdf_downloader\SFCR'
+# get list of available plants and periods
+available_plants = [plant for plant in os.listdir(base_directory) if os.path.isdir(os.path.join(base_directory, plant))]
+#available_plants = ['Zaklad1', 'Zaklad2', 'Zaklad3']
+available_periods = ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022']
 
 # Dash app initialization
 app = dash.Dash(external_stylesheets=[dbc.themes.MINTY])
@@ -172,6 +180,8 @@ def generate_merged_tables(n_clicks, selected_plants, selected_periods):
                 # check if path exists
                 if os.path.exists(os.path.join(base_directory, plant, available_periods[period_index], f'{file_type}.csv')):
                     df = load_data(plant, available_periods[period_index], file_type)
+                    if file_type == 'Struktura dla obligatoryjnych tabel':
+                        df.drop_duplicates(inplace=True)
                     df['Zaklad'] = plant  # Add a column for plant name
                     plant_data.append(df)
             
@@ -189,7 +199,11 @@ def generate_merged_tables(n_clicks, selected_plants, selected_periods):
                 columns=[{'name': col, 'id': col} for col in merged_df.columns],
                 data=merged_df.to_dict('records'),
                 sort_action='native',
-                filter_action='native'
+                filter_action='native',
+                style_cell={
+                    'whiteSpace': 'normal',
+                    'height': 'auto',
+                }
             )
         ]))
 
@@ -232,23 +246,29 @@ def analyze_files(n_clicks, selected_plant):
     statistics = pd.DataFrame(columns=periods, index=['Sekcja', 'Tabele', 'Słowa kluczowe'])
 
     for period in periods:
+        # check if path exists or table is empty
+        if not os.path.exists(os.path.join(base_directory, selected_plant, period, 'Struktura dla danych jakościowych.csv')) or load_data(selected_plant, period, 'Struktura dla danych jakościowych').empty:
+            continue
+        if not os.path.exists(os.path.join(base_directory, selected_plant, period, 'Struktura dla obligatoryjnych tabel.csv')) or load_data(selected_plant, period, 'Struktura dla obligatoryjnych tabel').empty:
+            continue
         df1 = load_data(selected_plant, period, 'Struktura dla danych jakościowych')
         df2 = load_data(selected_plant, period, 'Struktura dla obligatoryjnych tabel')
-        random_num = df2['ID_TAB'].iloc[0]
+        df2.drop_duplicates(inplace=True)
+        #random_num = df2['ID_TAB'].iloc[0]
         # Set WARTOŚĆ to null where ID_TAB is equal to random_num
-        df2.loc[df2['ID_TAB'] == random_num, 'WARTOŚĆ'] = None
+        #df2.loc[df2['ID_TAB'] == random_num, 'WARTOŚĆ'] = None
         df3 = load_data(selected_plant, period, 'Struktura dla danych dla weryfikacji kompletności SFCR')
         #Calculate % of missing sections (37 is the number of sections in the SFCR)
         missing_sections_frac = 1 -round(len(df1['ID_SEKCJA'].unique())/37,2)
         # Search tabele obligatoryjne for grouped ID_TAB and count if WARTOŚĆ is all null
-        df2_grouped = df2.groupby('FORMULARZ').count()
-        df2_grouped = df2_grouped[df2_grouped['WARTOŚĆ'] == 0]
-        df2_grouped = df2_grouped.reset_index()
-        number_of_not_present_tables = len(df2_grouped['FORMULARZ'].tolist())
-        number_of_present_tables_frac = 1 -round(number_of_not_present_tables/len(df2['FORMULARZ'].unique()))
+        unique_form = df2['FORMULARZ'].unique()
+        #df2_grouped = df2_grouped[df2_grouped['WARTOŚĆ'] == 0]
+        #df2_grouped = df2_grouped.reset_index()
+        #number_of_not_present_tables = len(df2_grouped['FORMULARZ'].tolist())
+        number_of_present_tables_frac = round(len(unique_form)/40,2)
         # Search in which sections there are missing key words
         num_ans = len(df3['ID_PYTANIA'].unique())
-        num_is_key_word = len(df3[df3['CZY WYSTĄPIŁ KLUCZ (0/1)'] == 1]['ID_PYTANIA'].unique())
+        num_is_key_word = len(df3[df3['CZY WYSTĄPIŁ KLUCZ'] == 1]['ID_PYTANIA'].unique())
         missing_keywords_frac = 1 - round((num_ans - num_is_key_word)/num_ans,2)
         statistics[period] = [missing_sections_frac, number_of_present_tables_frac, missing_keywords_frac]
 
@@ -339,8 +359,9 @@ def compare_files(n_clicks, file1_plant, file1_period, file2_plant, file2_period
     merged_df = merged_df[['FORMULARZ', 'WIERSZ', 'KOLUMNA', 'RÓŻNICA']]
     #print(merged_df)
     # Merge keywords on ID_PYTANIA and calculate the difference between CZY WYSTĄPIŁ KLUCZ (0/1)_x and CZY WYSTĄPIŁ KLUCZ (0/1)_y, then sort by the difference in descending order considering absolute values
-    keywords_merged_df = pd.merge(keywords1_df, keywords2_df, on=['ID_PYTANIA'], suffixes=('_x', '_y'))
-    keywords_merged_df['RÓŻNICA'] = keywords_merged_df['CZY WYSTĄPIŁ KLUCZ (0/1)_x'] - keywords_merged_df['CZY WYSTĄPIŁ KLUCZ (0/1)_y']
+    keywords_merged_df = pd.merge(keywords1_df, keywords2_df, on=['ID_PYTANIA'], suffixes=('_x', '_y'), how='inner')
+    print(keywords_merged_df)
+    keywords_merged_df['RÓŻNICA'] = keywords_merged_df['CZY WYSTĄPIŁ KLUCZ_x'] - keywords_merged_df['CZY WYSTĄPIŁ KLUCZ_y']
     keywords_merged_df = keywords_merged_df.sort_values(by=['RÓŻNICA'], ascending=False).reset_index(drop=True)
     # Select ID_PYTANIA, RÓŻNICA columns
     keywords_merged_df = keywords_merged_df[['ID_PYTANIA', 'RÓŻNICA']]
