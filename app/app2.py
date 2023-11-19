@@ -54,7 +54,7 @@ app.layout = html.Div([
                 value=[available_plants[0]]
             ),
     
-            html.Label("Wybierz okres czasu:"),
+            html.Label("Wybierz okres:"),
             dcc.RangeSlider(
                 id='period-slider',
                 min=0,
@@ -115,7 +115,7 @@ app.layout = html.Div([
                 value=available_plants[0]
             ),
     
-            html.Label("Wybierz okres czasu dla zakładu 1:"),
+            html.Label("Wybierz okres dla zakładu 1:"),
             dcc.Dropdown(
                 id='file1-period-dropdown',
                 options=[{'label': period, 'value': period} for period in available_periods],
@@ -129,7 +129,7 @@ app.layout = html.Div([
                 value=available_plants[0]
             ),
     
-            html.Label("Wybierz okres czasu dla zakładu 2:"),
+            html.Label("Wybierz okres dla zakładu 2:"),
             dcc.Dropdown(
                 id='file2-period-dropdown',
                 options=[{'label': period, 'value': period} for period in available_periods],
@@ -241,11 +241,11 @@ def analyze_files(n_clicks, selected_plant):
         #Calculate % of missing sections (37 is the number of sections in the SFCR)
         missing_sections_frac = 1 -round(len(df1['ID_SEKCJA'].unique())/37,2)
         # Search tabele obligatoryjne for grouped ID_TAB and count if WARTOŚĆ is all null
-        df2_grouped = df2.groupby('ID_TAB').count()
+        df2_grouped = df2.groupby('FORMULARZ').count()
         df2_grouped = df2_grouped[df2_grouped['WARTOŚĆ'] == 0]
         df2_grouped = df2_grouped.reset_index()
-        number_of_not_present_tables = len(df2_grouped['ID_TAB'].tolist())
-        number_of_present_tables_frac = 1 -round(number_of_not_present_tables/len(df2['ID_TAB'].unique()))
+        number_of_not_present_tables = len(df2_grouped['FORMULARZ'].tolist())
+        number_of_present_tables_frac = 1 -round(number_of_not_present_tables/len(df2['FORMULARZ'].unique()))
         # Search in which sections there are missing key words
         num_ans = len(df3['ID_PYTANIA'].unique())
         num_is_key_word = len(df3[df3['CZY WYSTĄPIŁ KLUCZ (0/1)'] == 1]['ID_PYTANIA'].unique())
