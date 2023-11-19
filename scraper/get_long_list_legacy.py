@@ -13,11 +13,12 @@ df.columns = ['dzial','kod','zaklad','lei','link']
 # add https:// to links
 df['link'] = 'https://' + df['link'].astype(str) + '/'
 urls = df['link'].tolist()
+
+
+urls = ['https://www.rejentlife.com.pl/']
+
+
 print(urls)
-
-# urls = ['https://www.uniqa.pl/']
-
-
 
 url = ""
 dict_href_links = {}
@@ -68,7 +69,10 @@ class Scraper:
             # print("baseURL", base_url)
             if adjusted_link not in self.long_list.keys():
                 if adjusted_link.startswith(base_url):
-                    self.long_list[adjusted_link] = False
+                    if adjusted_link.endswith(".pdf") or adjusted_link.endswith(".xlsx") or adjusted_link.endswith(".zip") or adjusted_link.endswith(".docx") or adjusted_link.endswith(".doc") or adjusted_link.endswith(".xls") or adjusted_link.endswith(".ppt") or adjusted_link.endswith(".pptx") or adjusted_link.endswith(".csv") or adjusted_link.endswith(".txt") or adjusted_link.endswith(".rtf") or adjusted_link.endswith(".jpg") or adjusted_link.endswith(".png") or adjusted_link.endswith(".jpeg") or adjusted_link.endswith(".gif") or adjusted_link.endswith(".svg") or adjusted_link.endswith(".bmp") or adjusted_link.endswith(".tif") or adjusted_link.endswith(".tiff") or adjusted_link.endswith(".odt") or adjusted_link.endswith(".ods") or adjusted_link.endswith(".odp") or adjusted_link.endswith(".odg") or adjusted_link.endswith(".odf") or adjusted_link.endswith(".odc") or adjusted_link.endswith(".odb") or adjusted_link.endswith(".odm") or adjusted_link.endswith(".ott") or adjusted_link.endswith(".ots") or adjusted_link.endswith(".otp") or adjusted_link.endswith(".otg") or adjusted_link.endswith(".oth"):
+                        self.long_list[adjusted_link] = True
+                    else:
+                        self.long_list[adjusted_link] = False
                 else:
                     continue
     
@@ -110,7 +114,7 @@ class Scraper:
                     current_link = list(not_checked.keys())[list(not_checked.values()).index(False)]      
                 except:
                     print("error")
-                    break   
+                    continue   
                
 
                 # set current link as visited
@@ -135,12 +139,11 @@ class Scraper:
                     a_file = open(f"scraper/links_to_be_scraped/data{id}.json", "w")
                     json.dump(self.long_list, a_file)
                     a_file.close()
-                if (now - start > 3600/3):
+                if (now - start > 3600/2):
                     print("\n\n\n wywalane jest\n\n\n")
                     break
 
             
-
 
         
 
