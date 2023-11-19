@@ -12,4 +12,4 @@ if __name__ == '__main__':
         download_all_files(filtered_links, 120, 'AUDIT')
     except Exception as e:
         print(e)
-        print("cos poszlo nie tak")
+        print("Error while downloading files.")

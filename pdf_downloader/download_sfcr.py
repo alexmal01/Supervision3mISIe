@@ -13,4 +13,4 @@ if __name__ == '__main__':
     except Exception as e:
         # get stack trace
         print(e)
-        print("cos poszlo nie tak")
+        print("Error while downloading files.")
