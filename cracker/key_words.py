@@ -33,16 +33,18 @@ def count_key_phrases(text:str, key_phrases:list[str],stemmer) -> dict:
         split_phrase = phrase.split()
         split_phrase_length = len(split_phrase)
         words_length = len(words)
-
-        if any(has_more_than_two_uppercase_letters(word) for word in split_phrase):
-            count = sum(phrase == ' '.join(words[i:i + split_phrase_length])
-                        for i in range(words_length - split_phrase_length + 1))
-        else:
-            phrase = ' '.join([stemmer.stem(word) for word in split_phrase])
-            count = sum(phrase.lower() == ' '.join(words[i:i + split_phrase_length]).lower()
-                        for i in range(words_length - split_phrase_length + 1))
-        
-        key_phrase_counts[phrase] = count
+        try:
+            if any(has_more_than_two_uppercase_letters(word) for word in split_phrase):
+                count = sum(phrase == ' '.join(words[i:i + split_phrase_length])
+                            for i in range(words_length - split_phrase_length + 1))
+            else:
+                phrase = ' '.join([stemmer.stem(word) for word in split_phrase])
+                count = sum(phrase.lower() == ' '.join(words[i:i + split_phrase_length]).lower()
+                            for i in range(words_length - split_phrase_length + 1))
+            
+            key_phrase_counts[phrase] = count
+        except:
+            key_phrase_counts[phrase] = 0
 
     return key_phrase_counts
 
@@ -86,6 +88,6 @@ def run_question_and_save_csv(requirements_df, content_df,stemmer, csv_path='Str
         if result:
             question_results.append(result)
     results_df = pd.DataFrame(question_results)
-    results_df.to_csv(csv_path,sep=';',index=False)
+    return results_df
 
 

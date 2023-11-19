@@ -178,11 +178,10 @@ class PDFReader:
         df = df.drop_duplicates(subset=["ID_SEKCJA"], keep="first")
         df['ID_SEKCJA'] = df['ID_SEKCJA'].apply(lambda x: np.nan if isinstance(x, str) and "_DEL" in x else x)
         df = df.loc[:, ['ID_SEKCJA NADRZĘDNA', 'ID_SEKCJA', 'NAZWA_SEKCJI', 'TREŚĆ']].reset_index(drop=True)
-        df.rename_axis('ID_TAB', inplace=True)
         df['DATA SFCR'] = self.date
         df['WERSJA SFCR'] = 1 # TODO
         df['KOD ZAKŁADU'] = 1 # TODO
-        df.to_csv(csv_path, header=True, sep=';')
+        return df
 
 
 
