@@ -5,8 +5,6 @@
 ### Scraper
 Moduł składa się z 2 submodułów. Napisany przy wykorzystaniu biblioteki Beautiful Soup 4 w Pythonie. 
 
-* 
-
 #### Pobieranie linków
 Funkcja pobierania linków pracuje wielokątkowo (domyślnie jest to 6 linków per wątek, czyli w przypadku zadania potrzeba 9 wątków).
 Przyjmuje listę linków. Tworzy pliki JSON zawierające:
