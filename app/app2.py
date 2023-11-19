@@ -108,60 +108,32 @@ app.layout = html.Div([
         ]),
 
         dcc.Tab(label='Porównanie SFCR', children=[
-            html.Label("Select File 1:"),
+            html.Label("Wybierz zakład 1:"),
             dcc.Dropdown(
                 id='file1-dropdown',
                 options=[{'label': plant, 'value': plant} for plant in available_plants],
                 value=available_plants[0]
             ),
     
-            html.Label("Select Period for File 1:"),
-            dcc.RangeSlider(
-                id='file1-period-slider',
-                min=0,
-                max=len(available_periods) - 1,
-                marks={i: period for i, period in enumerate(available_periods)},
-                value=[0, len(available_periods) - 1]
+            html.Label("Wybierz okres czasu dla zakładu 1:"),
+            dcc.Dropdown(
+                id='file1-period-dropdown',
+                options=[{'label': period, 'value': period} for period in available_periods],
+                value=available_periods[0]
             ),
     
-            html.Label("Wybierz rodzaj pliku:"),
-            dcc.RadioItems(
-                id='file1-type-radio',
-                options=[
-                    {'label': 'Type 1', 'value': 1},
-                    {'label': 'Type 2', 'value': 2},
-                    {'label': 'Type 3', 'value': 3}
-                ],
-                value=1,
-                labelStyle={'display': 'block'}
-            ),
-    
-            html.Label("Select File 2:"),
+            html.Label("Wybierz Zakład 2:"),
             dcc.Dropdown(
                 id='file2-dropdown',
                 options=[{'label': plant, 'value': plant} for plant in available_plants],
                 value=available_plants[0]
             ),
     
-            html.Label("Select Period for File 2:"),
-            dcc.RangeSlider(
-                id='file2-period-slider',
-                min=0,
-                max=len(available_periods) - 1,
-                marks={i: period for i, period in enumerate(available_periods)},
-                value=[0, len(available_periods) - 1]
-            ),
-    
-            html.Label("Select File Type for File 2:"),
-            dcc.RadioItems(
-                id='file2-type-radio',
-                options=[
-                    {'label': 'Type 1', 'value': 1},
-                    {'label': 'Type 2', 'value': 2},
-                    {'label': 'Type 3', 'value': 3}
-                ],
-                value=1,
-                labelStyle={'display': 'block'}
+            html.Label("Wybierz okres czasu dla zakładu 2:"),
+            dcc.Dropdown(
+                id='file2-period-dropdown',
+                options=[{'label': period, 'value': period} for period in available_periods],
+                value=available_periods[0]
             ),
     
             html.Button("Porównaj", id='compare-files-button'),
@@ -318,6 +290,9 @@ def analyze_files(n_clicks, selected_plant):
                 'width': '100%'
             }
         ),
+        dcc.Markdown(f'''
+            **Liczba zgromadzonych SFCR:** {len(periods)}
+        ''')
         
     ])
 
@@ -329,30 +304,122 @@ def analyze_files(n_clicks, selected_plant):
     Output('comparison-output', 'children'),
     [Input('compare-files-button', 'n_clicks')],
     [State('file1-dropdown', 'value'),
-     State('file1-period-slider', 'value'),
-     State('file1-type-radio', 'value'),
+     State('file1-period-dropdown', 'value'),
      State('file2-dropdown', 'value'),
-     State('file2-period-slider', 'value'),
-     State('file2-type-radio', 'value')]
+     State('file2-period-dropdown', 'value')]
 )
-def compare_files(n_clicks, file1_plant, file1_periods, file1_type, file2_plant, file2_periods, file2_type):
+def compare_files(n_clicks, file1_plant, file1_period, file2_plant, file2_period):
     if n_clicks is None:
         raise PreventUpdate
 
-    file1_df = load_data(file1_plant, available_periods[file1_periods[0]], file1_type)
-    file2_df = load_data(file2_plant, available_periods[file2_periods[0]], file2_type)
+    # Check if the selected SFCR files exist
+    if not os.path.exists(os.path.join(base_directory, file1_plant, file1_period, 'Struktura dla danych jakościowych.csv')):
+        return html.Div([  
+            dcc.Markdown(f'''
+                **UWAGA:** Nie znalezniono plików SFCR dla zakłdu: {file1_plant} oraz okresu: {file1_period}!
+            ''')
+        ])
+    elif not os.path.exists(os.path.join(base_directory, file2_plant, file2_period, 'Struktura dla danych jakościowych.csv')):
+        return html.Div([
+            dcc.Markdown(f'''
+                **UWAGA:** Nie znalezniono plików SFCR dla zakłdu: {file2_plant} oraz okresu: {file2_period}!
+            ''')
+        ])
+
+    tables1_df = load_data(file1_plant, file1_period, 'Struktura dla obligatoryjnych tabel')
+    tables2_df = load_data(file2_plant, file2_period, 'Struktura dla obligatoryjnych tabel')
+    keywords1_df = load_data(file1_plant, file1_period, 'Struktura dla danych dla weryfikacji kompletności SFCR')
+    keywords2_df = load_data(file2_plant, file2_period, 'Struktura dla danych dla weryfikacji kompletności SFCR')
+
+    # Merge tables on FORMULARZ, WIERSZ, KOLUMNA and calculate the difference between WARTOŚĆ_x and WARTOŚĆ_y, then sort by the difference in descending order considering absolute values
+    merged_df = pd.merge(tables1_df, tables2_df, on=['FORMULARZ', 'WIERSZ', 'KOLUMNA'], suffixes=('_x', '_y'))
+    merged_df['RÓŻNICA'] = merged_df['WARTOŚĆ_x'] - merged_df['WARTOŚĆ_y']
+    merged_df = merged_df.sort_values(by=['RÓŻNICA'], ascending=False).reset_index(drop=True)
+    # Select FORMULARZ, WIERSZ, KOLUMNA, RÓŻNICA columns
+    merged_df = merged_df[['FORMULARZ', 'WIERSZ', 'KOLUMNA', 'RÓŻNICA']]
+    #print(merged_df)
+    # Merge keywords on ID_PYTANIA and calculate the difference between CZY WYSTĄPIŁ KLUCZ (0/1)_x and CZY WYSTĄPIŁ KLUCZ (0/1)_y, then sort by the difference in descending order considering absolute values
+    keywords_merged_df = pd.merge(keywords1_df, keywords2_df, on=['ID_PYTANIA'], suffixes=('_x', '_y'))
+    keywords_merged_df['RÓŻNICA'] = keywords_merged_df['CZY WYSTĄPIŁ KLUCZ (0/1)_x'] - keywords_merged_df['CZY WYSTĄPIŁ KLUCZ (0/1)_y']
+    keywords_merged_df = keywords_merged_df.sort_values(by=['RÓŻNICA'], ascending=False).reset_index(drop=True)
+    # Select ID_PYTANIA, RÓŻNICA columns
+    keywords_merged_df = keywords_merged_df[['ID_PYTANIA', 'RÓŻNICA']]
+    num_ans = len(keywords_merged_df['ID_PYTANIA'].unique())
+    # Calculate indicator of similarity in keywords (near 1 indicates that Zaklad1 has perfect and Zaklad2 has no keywords, near -1 indicates that Zaklad2 has perfect and Zaklad1 has no keywords and 0 indicates that both Zaklads have the same strength in terms of keywords)
+    similarity_indicator = round((keywords_merged_df['RÓŻNICA'].sum()/num_ans),2)
+    #print(keywords_merged_df)
+
+    # Display the results
 
     # Perform any comparison or analysis as needed
     comparison_result = html.Div([
-        html.H4('Comparison Result'),
+        # Wrap both DataTables in a single div
+        html.Div([
+            # First DataTable
+            html.Div([
+                html.Label("Różnica w tabelach", style={'textAlign': 'center'}),
+                dash_table.DataTable(
+                id='table-type1',
+                columns=[{'name': col, 'id': col} for col in merged_df.columns],
+                data=merged_df.round(2).to_dict('records'),
+                style_cell={
+                    'textAlign': 'center',
+                    'font-family': 'sans-serif',
+                    'font-size': '1.2rem'
+                },
+                style_header={
+                    'backgroundColor': 'rgb(230, 230, 230)',
+                    'fontWeight': 'bold'
+                },
+                style_table={
+                    'overflowX': 'auto',
+                    #'width': '45%',  # Adjust as needed
+                    'display': 'inline-block',
+                    'verticalAlign': 'top',
+                    #'margin': '0 25%'
+                },
+                page_action='native',
+                page_current=0,
+                page_size=10,
+            )], style={'width': '45%',  'display': 'inline-block'}),
+
+            # Second DataTable
+            html.Div([
+                html.Label("Różnica flag słów kluczowych", style={'textAlign': 'center'}),
+                dash_table.DataTable(
+                id='table-type2',
+                columns=[{'name': col, 'id': col} for col in keywords_merged_df.columns],
+                data=keywords_merged_df.to_dict('records'),
+                style_cell={
+                    'textAlign': 'center',
+                    'font-family': 'sans-serif',
+                    'font-size': '1.2rem'
+                },
+                style_header={
+                    'backgroundColor': 'rgb(230, 230, 230)',
+                    'fontWeight': 'bold'
+                },
+                style_table={
+                    'overflowX': 'auto',
+                    #'width': '45%',  # Adjust as needed
+                    'display': 'inline-block',
+                    'verticalAlign': 'top',
+                    #'margin': '0 75%'
+                },
+                page_action='native',
+                page_current=0,
+                page_size=10,
+            )], style={'width': '45%',  'display': 'inline-block', 'margin': '0 5%'}),
+        ]),
+
         dcc.Markdown(f'''
-            **File 1:** {file1_plant}, Period: {available_periods[file1_periods[0]]}, Type: {file1_type}
-            
-            **File 2:** {file2_plant}, Period: {available_periods[file2_periods[0]]}, Type: {file2_type}
-            
-            *Add your comparison or analysis here.*
+            **Podobieństwo w słowach kluczowych:** {similarity_indicator}
+            Wskaźnik podobieństwa w słowach kluczowych wskazuje na to, jak bardzo słowa kluczowe w SFCR dla zakładu 1 są podobne do słów kluczowych w SFCR dla zakładu 2. Wskaźnik ten jest obliczany jako suma różnic w słowach kluczowych podzielona przez liczbę pytań w SFCR.
+            Im bliżej 1 tym lepiej dla zakładu 1, im bliżej -1 tym lepiej dla zakładu 2, a im bliżej 0 tym lepiej bardziej podobne są dokumenty wybranych zakładów w kontekście słów kluczowych.
         ''')
+
     ])
+
 
     return comparison_result
 
