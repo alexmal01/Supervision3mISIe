@@ -6,64 +6,97 @@ import json
 import difflib
 import numpy as np
 from .tools import extract_file_date
+from typing import Generator
 
 class PDFReader:
-    def __init__(self, file_path):
+    """
+    Class for reading PDF files and segmenting them into sections
+    """
+    def __init__(self, file_path: str) -> None:
+        """
+        :param file_path: path to the PDF file
+        """
         self.file_path = file_path
         self.doc = fitz.open(self.file_path)
-        self.fonts = []
-        self.sizes = []
-        self.colors = []
+        self.fonts: list[str] = []
+        self.sizes: list[float] = []
+        self.colors: list[float] = []
         self.date = extract_file_date(file_path)
     
     @staticmethod
-    def read_sections_template():
+    def read_sections_template() -> pd.DataFrame:
+        """
+        Method for reading the sections template file - extracted from appendix 2 of the task guidelines
+
+        :return: dataframe with sections template
+        """
         df = pd.read_csv("sekcje_format.csv", sep=";", header=0)
         return df[~df["nazwa_sekcji"].isin(["Działalność i wyniki operacyjne", "System zarządzania", "Profil ryzyka", "Wycena do celów wypłacalności", "Zarządzanie kapitałem"])]
 
-    
-    def extract_pdf(self):
-        text = ""
-        for s in self.doc_iterator(self.doc):
-            text += s["text"]
-            self.fonts.append(s["font"])
-            self.colors.append(s["color"])
-            self.sizes.append(s["size"])
-        return text
-    
-    def doc_iterator(self, doc):
+    @staticmethod
+    def doc_iterator(doc) -> Generator:
+        """
+        Generator for iterating through the PDF document and extracting key information about the text
+        Extracted information: text, font type, font color, font size
+
+        :param doc: PDF document
+        """
         for page in doc:
             blocks = page.get_text("dict", flags=11)["blocks"]
             for b in blocks:
                 for l in b["lines"]:
                     for s in l["spans"]:
                         yield s
+    
+    def extract_pdf(self) -> str:
+        """
+        Method for extracting text from the PDF file
 
-    def get_headers_text(self):
+        :return: extracted text
+        """
+        text = ""
+        for s in PDFReader.doc_iterator(self.doc):
+            text += s["text"]
+            self.fonts.append(s["font"])
+            self.colors.append(s["color"])
+            self.sizes.append(s["size"])
+        return text
+
+    def get_headers_text(self, save_headers: bool = False) -> dict:
+        """
+        One of the main methods, used to detect headings in the file.
+        It uses a set of filters to detect headlines int the pdf text.
+        Filters are based on the font size, font color, and its text content.
+        Text between headlines is then extracted.
+
+        :param save_headers: boolean flag, whether extracted headers should be saved to a json file
+        :return: dictionary with extracted headers, full paragraph text, header font features: size, color, type
+        """
         headers = defaultdict(list)
-        
-        # sections_counter = Counter()
         _ = self.extract_pdf()
         sekcje = list(PDFReader.read_sections_template()["nazwa_sekcji"])
 
-        # configs = []
-
         # Filters to detect headlines
-        size_thresh = self.get_size_filter(self.sizes)
-        max_size = self.get_size_filter(self.sizes, 1)
-        most_common_color = self.get_color_filter(self.colors)
-        most_common_font = self.get_font_filter(self.fonts)
+        size_thresh = self.get_size_filter()
+        max_size = self.get_size_filter(1)
+        most_common_color = self.get_color_filter()
+        most_common_font = self.get_font_filter()
+
         is_header = False
         in_section = False
-        for s in self.doc_iterator(self.doc):
+
+        # Iteration through the PDF document
+        for s in PDFReader.doc_iterator(self.doc):
             text = s["text"]
             if in_section and len(headers["text"])>0:
                 headers["text"][-1] += text
+            # Filtering headline candidates
             if s["size"]>size_thresh or s["size"]==max_size or s["color"] != most_common_color or s["font"]!=most_common_font:
                 if is_header:
                     headers["header"][-1]+=text
                     continue
                 in_section = False
+                # Checking whether headlines match section name or naming pattern (i.e. A.1.1 or B.1.2.1)
                 sections_present = set(self.find_sections_by_name(sekcje, text) + self.find_sections_by_id(text))
                 if len(sections_present)>0:
                     headers["sections_present"].append(tuple(sections_present))
@@ -73,35 +106,53 @@ class PDFReader:
                     headers["font"].append(s["font"])
                     headers["text"].append(text)
 
-                    # sections_counter[tuple(sections_present)]+=1
-                    # configs.append((s["size"], s["color"], s["font"], tuple(sections_present)))
                     is_header = True
                     in_section = True
             else:
                 is_header = False
 
-        # with open("headers.json", "w") as f:
-        #     json.dump(headers, f, indent=4)
+
+        # Dumping headers to json file
+        if save_headers:
+            with open("headers.json", "w") as f:
+                json.dump(headers, f, indent=4)
         return headers
 
-    def keyword_duplicates(keywords: list[str], texts: list[str]):
-        for text in texts:
-            keyword_counter = 0
-            for keyword in keywords:
-                if keyword in text:
-                    keyword_counter+=1
-        pass
+    def get_size_filter(self, quantile: float = 0.8) -> float:
+        """
+        Filters font sizes based on quantile
 
-    def get_size_filter(self, sizes: list, quantile: float = 0.8):
-        return pd.Series(sizes).quantile(quantile)
+        :param quantile: quantile to filter font sizes
+        :return: quantile value
+        """
+        return pd.Series(self.sizes).quantile(quantile)
     
-    def get_color_filter(self, colors: list):
-        return Counter(colors).most_common(1)[0][0]
-    
-    def get_font_filter(self, fonts: list):
-        return Counter(fonts).most_common(1)[0][0]
+    def get_color_filter(self) -> float:
+        """
+        Filters font colors based on the most common color
 
-    def find_sections_by_name(self, all_sections: list[str], text: str):
+        :return: most common color
+        """
+        return Counter(self.colors).most_common(1)[0][0]
+    
+    def get_font_filter(self) -> str:
+        """
+        Filters out the most common font type
+
+        :return: most common font type
+        """
+        return Counter(self.fonts).most_common(1)[0][0]
+
+    def find_sections_by_name(self, all_sections: list[str], text: str) -> list[str]:
+        """
+        Checks which sections are present in the text.
+        Method combines equal matching using RegEx and fuzzy matching using difflib
+
+        :param all_sections: list of all available sections, in usage set to sections from the template
+        :param text: text to be checked
+
+        :return: list of sections present in the text
+        """
         sections_present = []
 
         for section in all_sections:
@@ -112,7 +163,14 @@ class PDFReader:
                 sections_present.append(section)
         return sections_present
     
-    def find_sections_by_id(self, text: str, all_letters: list[str] = ["A", "B", "C", "D", "E"]):
+    def find_sections_by_id(self, text: str, all_letters: list[str] = ["A", "B", "C", "D", "E"]) -> list[str]:
+        """
+        Method for finding sections by their id (i.e. A.1.1 or B.1.2.1)
+
+        :param text: text to be checked
+        :param all_letters: list of all available letters used in section ids
+        :return: list of sections present in the text
+        """
         sections_present = []
         for letter in all_letters:
             for i in range(1, 6):
@@ -126,9 +184,27 @@ class PDFReader:
                             sections_present.append(section)
         return sections_present
     
-    
-    def create_df(self, headers: dict, csv_path="Struktura dla danych jakościowych.csv"):
 
+    @staticmethod
+    def remove_duplicate_first_word(text: str) -> str:
+        """
+        Function removes duplicate first word from the text
+
+        :param text: text to be checked
+        :return: text without duplicate first word
+        """
+        words = text.strip().split()
+        if len(words) > 1 and words[0] == words[1]:
+            return ' '.join(words[1:])
+        else:
+            return text
+
+    def create_df(self, headers: dict):
+        """
+        Function creates final dataframe with extracted headers and their content
+
+        :param headers: dictionary with extracted headers, full paragraph text, header font features: size, color, type
+        """
         sekcje = pd.read_csv("sekcje_format.csv", sep=";", header=0)
 
         id_name = dict(zip(list(sekcje["id_sekcji"]), list(sekcje["nazwa_sekcji"])))
@@ -160,15 +236,7 @@ class PDFReader:
         df['NAZWA_SEKCJI'] = df['id_sekcji_tmp'] + " "+df['NAZWA_SEKCJI']
 
 
-
-        def remove_duplicate_first_word(text):
-            words = text.strip().split()
-            if len(words) > 1 and (words[0] == words[1] or words[0]+"." == words[1]):
-                return ' '.join(words[1:])
-            else:
-                return text
-
-        df['NAZWA_SEKCJI'] = df['NAZWA_SEKCJI'].apply(remove_duplicate_first_word)
+        df['NAZWA_SEKCJI'] = df['NAZWA_SEKCJI'].apply(PDFReader.remove_duplicate_first_word)
         def skip_first_n_chars(row):
             n = len(row['NAZWA_SEKCJI'].split())
             return " ".join(row['text'].split()[max(0,n-1):])
@@ -186,6 +254,7 @@ class PDFReader:
 
 
 def main():
+    # This is example usage of the class
     sfcr_file_path = '2022-SFCR-TUIR-Sprawozdanie-o-wyplacalnosci-i-kondycji-finansowej.pdf'
     pdf_reader = PDFReader(sfcr_file_path)
     headers = pdf_reader.get_headers_text()
