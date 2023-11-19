@@ -8,25 +8,14 @@ import fitz  # PyMuPDF
 from collections import defaultdict
 
 
+
 def find_pages_with_patterns(pdf_path, pattern_list):
-    """
-    Funkcja do znajdywania danego numeru formularza w pdf,
-    jeśli nie znajdujemy danego kodu formularza, to szukamy ponownie ale z obciętym ostatnim numerem
-    przykładowo aby znaleźć tabelę z formularza S.23.01.01.01, najpierw szukamy wystąpienia S.23.01.01.01,
-    a potem S.23.01.01
-
-
-    Parametry:
-    - pdf_path - ścieżka do pdf sfcr
-    - pattern_list - kody formularzy
-    Zwrot:
-    - wszystkie configs potrzebne
-  """
     pdf_document = fitz.open(pdf_path)
-    sheet_dict = {}
+    page_dict = {}
 
     for pattern in pattern_list:
-        sheet_dict[pattern] = None
+        page_dict[pattern] = []
+
     # Iterate through all pages
     for page_number in range(pdf_document.page_count):
         page = pdf_document[page_number]
@@ -35,22 +24,29 @@ def find_pages_with_patterns(pdf_path, pattern_list):
         text = page.get_text("text")
 
         # Check if each pattern is present on the page
-        for i, pattern in enumerate(pattern_list):
+        for pattern in pattern_list:
             if pattern in text:
-
-                sheet_dict[pattern] = page_number
+                page_dict[pattern].append(page_number)
             else:
-                # iterate through shorten pattern
+                # Iterate through shorten pattern
                 pattern_short = '.'.join(pattern.split('.')[:-1])
                 if pattern_short in text:
                     # If pattern found, add the page to the corresponding list
-                    # pages_for_patterns[i].append(page_number)
-                    sheet_dict[pattern] = page_number
+                    page_dict[pattern].append(page_number)
 
     # Close the PDF document
     pdf_document.close()
 
-    return sheet_dict
+    # Create a dictionary with page numbers as keys and corresponding patterns as values
+    result_dict = {}
+    for pattern, page_numbers in page_dict.items():
+        for page_number in page_numbers:
+            if page_number not in result_dict:
+                result_dict[page_number] = [pattern]
+            else:
+                result_dict[page_number].append(pattern)
+
+    return result_dict
 
 
 def load_interpreter_pdf():
@@ -72,21 +68,26 @@ def load_interpreter_pdf():
 
 
 def create_full(file_pdf, df_template):
-    """
-    Otrzymujemy końcowo DF jako odczytane wymagane tabele, korzystamy z koordynatów
+  """
+    Otrzymujemy końcowo DF jako odczytane wymagane tabele, korzystamy z koordynatów 
     kolumn i wierszy, funkcja jest odporna na możliwość wielu tabel obok siebie
 
     Parametry:
     - file_pdf - ścieżka do pdf sfcr
     - df_template - nasz plik w formacie DF, powstały na podstawie excela załącznik nr 4
-
+  
 
     Zwrot:
     - df_final - końcowa DF o tabelach z danego sfcr
   """
 
-    # read configs
-    rsrcmgr, laparams, device, interpreter = load_interpreter_pdf()
+
+  #read configs
+  rsrcmgr,laparams,device,interpreter = load_interpreter_pdf()
+
+  #find page for table
+  unique_sheets = df_template['sheet'].unique()
+  result_dict = find_pages_with_patterns(file_pdf, unique_sheets)
 
     # find page for table
     unique_sheets = df_template['sheet'].unique()
@@ -104,26 +105,25 @@ def create_full(file_pdf, df_template):
     fp = open(file_pdf, 'rb')
     pages = PDFPage.get_pages(fp)
 
-    df_template['value'] = None
-
-    df_final = pd.DataFrame(columns=df_template.columns)
+  for page in pages:
+      
+      if not pg_number in result_dict.keys():
+        pg_number+=1
+        continue
 
     pg_number = 0
+      df_sheet = df_template[df_template['sheet'].isin(result_dict[pg_number])]
+      
+      pg_number+=1
 
-    for page in pages:
-
-        if not pg_number in result_dict.keys():
-            pg_number += 1
-            continue
-
-        df_sheet = df_template[df_template['sheet'].isin(result_dict[pg_number])]
-
-        pg_number += 1
+      try:
+        
+        df_found = create_final_table(page,df_sheet,interpreter,device,laparams,rsrcmgr)
+        df_final = pd.concat([df_final, df_found], ignore_index=True)
 
         try:
-
-            df_found = create_final_table(page, df_sheet, interpreter, device, laparams, rsrcmgr)
-            df_final = pd.concat([df_final, df_found], ignore_index=True)
+  #add the one not found
+  df_final['value'] = df_final['value'].str.replace(' ','')
 
         except Exception as e:
             continue
@@ -140,8 +140,8 @@ def create_full(file_pdf, df_template):
     return df_final.drop_duplicates()
 
 
-def create_final_table(page, df_short, interpreter, device, laparams, rsrcmgr, THRESHOLD=4.2):
-    """
+def create_final_table(page,df_short,interpreter,device,laparams,rsrcmgr,THRESHOLD=4.2):
+  """
     Na podstawie odczytu strony, na której znajdują się dane tabele wyekstrahuj wartości
 
     Parametry:
