@@ -13,7 +13,6 @@ def filter_links(file, sfcr=True):
         with open(file, 'r') as fcc_file:
             links = json.load(fcc_file)
             links = list(links.keys())
-            print(len(links))
             patSFCR = re.compile(r'(.*sfcr.*)', re.IGNORECASE)
             filteredSFCR = [i for i in links if patSFCR.match(i)]
 
@@ -37,7 +36,6 @@ def filter_links(file, sfcr=True):
         ]
         patterns = [re.compile(r'.*{}.*'.format(string), re.IGNORECASE) for string in strings]
         pattern_pdf = re.compile(r'\.pdf$', re.IGNORECASE)
-        # print("Patterns:", patterns)
         with open(file, 'r') as fcc_file:
             links = json.load(fcc_file)
             links = list(links.keys())
@@ -47,12 +45,9 @@ def filter_links(file, sfcr=True):
             opinia_badanie = set([i for i in links if pattern_opinia.match(i) and pattern_badanie.match(i)])
             opinia_sprawozdanie = set([i for i in links if pattern_opinia.match(i) and pattern_sprawozdanie.match(i)])
             badanie_sprawozdanie = set([i for i in links if pattern_badanie.match(i) and pattern_sprawozdanie.match(i)])
-
-            # print(len(links))
             filtered = [opinia_sprawozdanie, opinia_badanie, badanie_sprawozdanie]
             for pattern in patterns:
                 filtered.append(set([i for i in links if pattern.match(i)]))
-            print(len(filtered))
             merged_set = set()
             for filt in filtered:
                 merged_set = merged_set | filt
@@ -76,7 +71,6 @@ def get_links(directory, sfcr=True) -> list:
 
 
 def get_link_base(link):
-    print("Splitting link:", link)
     return link.split('/')[2]
 
 
@@ -125,7 +119,7 @@ def download_pdf(link, filename):
             return response.status_code
     except Exception as e:
         print(e)
-        print("Error status code")
+        print("Error")
         return response.status_code
 
 
@@ -133,7 +127,6 @@ def download_all_files(links, czas, filetype):
     total = time.perf_counter()
     start = time.perf_counter()
     idx = 0
-    print(os.getcwd())
     df = pd.read_csv('../scraper/zaklady.csv')
     df.columns = ['dzial', 'kod', 'zaklad', 'lei', 'link']
     for i in range(len(links)):
@@ -164,14 +157,12 @@ def download_all_files(links, czas, filetype):
             idx += 1
             continue
         link_base = get_link_base(link)
-        print("Link base:", link_base)
         folder_location = get_folder_location(f'{os.getcwd()}/SFCR/', link_base)
         os.makedirs(folder_location, exist_ok=True)
         code, name = get_code_and_name(df, link_base)
         print("Kod zakladu: ", code)
         print("Nazwa zakladu: ", name)
         filename = get_filename(folder_location, filetype, code, name, link)
-        print("Link to be used:", link)
         print("Filename:", filename)
         status_code = 404
         if not os.path.isfile(filename):
@@ -190,7 +181,7 @@ def download_all_files(links, czas, filetype):
         print("New filename:", new_filename)
         os.rename(filename, new_filename)
         print(f"Moved file from {filename} to {new_filename}")
-        print("********************ESSSAAAAA***************")
+        print("********************DOWNLOAD SUCCESSFUL***************")
         idx += 1
         if idx >= len(links):
             break

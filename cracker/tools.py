@@ -68,7 +68,7 @@ def extract_file_date(pdf_path:str)->str:
 
 
 
-def parse_audit_pdf(pdf_path:str) -> int:
+def parse_audit_pdf(pdf_path:str, stemmer) -> int:
     # this function just looks whether the audit was g or not
     try:
         pdf_document = fitz.open(pdf_path)
@@ -82,7 +82,7 @@ def parse_audit_pdf(pdf_path:str) -> int:
         text = page.get_text().replace('\n', ' ').lower()
         text = re.sub(r'[^a-zA-Z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s]', '', text)
         
-        counts = count_key_phrases(text,key_phrases_audit)
+        counts = count_key_phrases(text,key_phrases_audit,stemmer)
         if sum(counts.values()) > 0:
             return 1
     return 0
