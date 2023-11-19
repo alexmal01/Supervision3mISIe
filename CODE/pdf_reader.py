@@ -4,6 +4,8 @@ import fitz
 from collections import Counter, defaultdict
 import json
 import difflib
+import json
+import numpy as np
 
 class PDFReader:
     def __init__(self, file_path):
@@ -122,12 +124,68 @@ class PDFReader:
                         if len(re.findall(section, text))>0:
                             sections_present.append(section)
         return sections_present
+    
+    
+    def create_df(self, headers: dict):
+
+        sekcje = pd.read_csv("sekcje_format.csv", sep=";", header=0)
+
+        id_name = dict(zip(list(sekcje["id_sekcji"]), list(sekcje["nazwa_sekcji"])))
+        name_id = dict(zip(list(sekcje["nazwa_sekcji"]), list(sekcje["id_sekcji"])))
+
+        for i in range(len(headers["header"])):
+            if len(headers["sections_present"][i])>1:
+                deepest = max([len(x.split(".")) for x in headers["sections_present"][i]])
+                headers["sections_present"][i] = [x for x in headers["sections_present"][i] if len(x.split("."))==deepest]
+        
+        config_dict = {}
+        for i in range(len(headers["header"])):
+            config = (headers["size"][i], headers["color"][i], headers["font"][i])
+            if config not in config_dict:
+                config_dict[config] = set()
+            config_dict[config].update(headers["sections_present"][i])
+
+        config_dict = {k: len(v) for k, v in config_dict.items()}
+
+        df = pd.DataFrame(headers)
+        df["sections_present"] = df["sections_present"].apply(lambda x: x[0])
+        df["tuple"] = df.apply(lambda x: (x["size"], x["color"], x["font"]), axis=1)
+        df["num_ocs"] = df["tuple"].map(config_dict)
+        df['nazwa_sekcji'] = df['sections_present'].map(id_name).combine_first(df['header'])
+        df['id_sekcji_tmp'] = df['sections_present'].map(name_id).combine_first(df['sections_present']).apply(lambda x: x.replace(" ", "").strip())
+        df['sekcja_nadrzedna'] = df["id_sekcji_tmp"].apply(lambda x: ".".join(x.split(".")[:-1])).replace({"A": "A.", "B":"B.", "C": "C.", "D": "D.", "E": "E."})
+        df['id_sekcji_nadrzednej2'] = df.merge(sekcje, how="left", left_on="sekcja_nadrzedna", right_on="id_sekcji")["id"]
+        df['id_sekcji'] = df.merge(sekcje, how="left", left_on="id_sekcji_tmp", right_on="id_sekcji")["id"]
+        df['nazwa_sekcji'] = df['id_sekcji_tmp'] + " "+df['nazwa_sekcji']
+
+
+        def remove_duplicate_first_word(text):
+            words = text.strip().split()
+            if len(words) > 1 and words[0] == words[1]:
+                return ' '.join(words[1:])
+            else:
+                return text
+
+        df['nazwa_sekcji'] = df['nazwa_sekcji'].apply(remove_duplicate_first_word)
+        def skip_first_n_chars(row):
+            n = len(row['nazwa_sekcji'].split())
+            return " ".join(row['text'].split()[max(0,n-1):])
+        df['tresc']=df.apply(skip_first_n_chars, axis=1)
+        df['id_sekcji'] = df['id_sekcji'].fillna(df['id_sekcji_tmp']+"_DEL")
+        df = df.sort_values(by=["id_sekcji", "num_ocs"], ascending=False)
+        df = df.drop_duplicates(subset=["id_sekcji"], keep="first")
+        df['id_sekcji'] = df['id_sekcji'].apply(lambda x: np.nan if isinstance(x, str) and "_DEL" in x else x)
+        df = df.loc[:, ['id_sekcji_nadrzednej2', 'id_sekcji', 'nazwa_sekcji', 'tresc']].reset_index(drop=True)
+        df.to_csv("headers.csv")
+
 
 
 def main():
     pdf_reader = PDFReader("2022-SFCR-TUIR-Sprawozdanie-o-wyplacalnosci-i-kondycji-finansowej.pdf")
     pdf_reader2 = PDFReader("SFCR NN TUNZ 2021.pdf")
     headers = pdf_reader2.get_headers_text()
+    pdf_reader2.create_df(headers)
+    
 
 if __name__ == "__main__":
     main()
