@@ -4,6 +4,7 @@ import json
 import time
 import pandas as pd
 import re
+import fitz
 
 
 def filter_links(file, sfcr=True):
@@ -30,18 +31,25 @@ def filter_links(file, sfcr=True):
         return merged_list
     else:
         strings = [
-            "badani",
             "rewident",
             "biegl",
-            "audytor",
+            "audyt",
         ]
         patterns = [re.compile(r'.*{}.*'.format(string), re.IGNORECASE) for string in strings]
+        pattern_pdf = re.compile(r'\.pdf$', re.IGNORECASE)
         # print("Patterns:", patterns)
         with open(file, 'r') as fcc_file:
             links = json.load(fcc_file)
             links = list(links.keys())
+            pattern_opinia = re.compile(r'.*opini.*', re.IGNORECASE)
+            pattern_badanie = re.compile(r'.*badan.*', re.IGNORECASE)
+            pattern_sprawozdanie = re.compile(r'.*sprawozdan.*', re.IGNORECASE)
+            opinia_badanie = set([i for i in links if pattern_opinia.match(i) and pattern_badanie.match(i)])
+            opinia_sprawozdanie = set([i for i in links if pattern_opinia.match(i) and pattern_sprawozdanie.match(i)])
+            badanie_sprawozdanie = set([i for i in links if pattern_badanie.match(i) and pattern_sprawozdanie.match(i)])
+
             # print(len(links))
-            filtered = []
+            filtered = [opinia_sprawozdanie, opinia_badanie, badanie_sprawozdanie]
             for pattern in patterns:
                 filtered.append(set([i for i in links if pattern.match(i)]))
             print(len(filtered))
@@ -49,6 +57,7 @@ def filter_links(file, sfcr=True):
             for filt in filtered:
                 merged_set = merged_set | filt
             merged_list = list(merged_set)
+            merged_list = [i for i in merged_list if pattern_pdf.search(i)]
         return merged_list
 
 
@@ -71,15 +80,18 @@ def get_link_base(link):
     return link.split('/')[2]
 
 
-def get_folder_location(dir_local, link_base, link):
-    return os.path.join(dir_local, link_base, link)
+def get_name(link_base):
+    name = link_base.split('.')[1]
+    return name
+
+
+def get_folder_location(dir_local, link_base):
+    return os.path.join(dir_local, get_name(link_base))
 
 
 def get_code_and_name(df, link_base):
-    code = df[df['link'] == link_base]['lei'].values[0]
-    name = df[df['link'] == link_base]['zaklad'].values[0]
-    name = name.replace(' ', '_')
-    name = name.replace('.', '')
+    code = df[df['link'] == link_base]['kod'].values[0]
+    name = get_name(link_base)
     return code, name
 
 
@@ -97,8 +109,8 @@ def check_for_dot_issues(link):
     return link
 
 
-def get_filename(folder_location, filetype, code, name, link):
-    return os.path.join(folder_location, f"{filetype}_{code}_{name}__{check_for_dot_issues(link)}")
+def get_filename(folder_location, filetype, code, name):
+    return os.path.join(folder_location, f"{filetype}_{code}_{name}.pdf")
 
 
 def download_pdf(link, filename):
@@ -107,11 +119,14 @@ def download_pdf(link, filename):
         if response.status_code == 200:
             with open(filename, 'wb') as pdf:
                 pdf.write(response.content)
+            return response.status_code
         else:
             print("Error: ", response.status_code)
+            return response.status_code
     except Exception as e:
         print(e)
         print("Error status code")
+        return response.status_code
 
 
 def download_all_files(links, czas, filetype):
@@ -150,20 +165,56 @@ def download_all_files(links, czas, filetype):
             continue
         link_base = get_link_base(link)
         print("Link base:", link_base)
-        # get link without the part after the last '/' sign
-        link_stripped = link[:link.rfind('/')]
-        print("Link stripped:", link_stripped)
-        folder_location = get_folder_location(f'{os.getcwd()}/SFCR/', link_base, link_stripped)
+        folder_location = get_folder_location(f'{os.getcwd()}/SFCR/', link_base)
         os.makedirs(folder_location, exist_ok=True)
         code, name = get_code_and_name(df, link_base)
         print("Kod zakladu: ", code)
         print("Nazwa zakladu: ", name)
-        filename = get_filename(folder_location, filetype, code, name, link)
+        filename = get_filename(folder_location, filetype, code, name)
         print("Link to be used:", link)
         print("Filename:", filename)
+        status_code = 404
         if not os.path.isfile(filename):
-            download_pdf(link, filename)
+            status_code = download_pdf(link, filename)
+        if status_code != 200:
+            print("Error: ", status_code)
+            idx += 1
+            continue
+        print("Downloaded file")
+        year = extract_file_year(filename)
+        new_filename_base = f"{year}_{os.path.basename(filename)}"
+        print("New filename base:", new_filename_base)
+        new_folder = os.path.join(folder_location, year)
+        os.makedirs(new_folder, exist_ok=True)
+        new_filename = os.path.join(new_folder, new_filename_base)
+        print("New filename:", new_filename)
+        os.rename(filename, new_filename)
+        print(f"Moved file from {filename} to {new_filename}")
         print("********************ESSSAAAAA***************")
         idx += 1
         if idx >= len(links):
             break
+
+
+def extract_file_year(pdf_path: str) -> str:
+    # this is meant to be used when creating pdf name
+    try:
+        pdf_document = fitz.open(pdf_path)
+    except:
+        print("can't open document")
+        return '0000'
+    year_pattern = re.compile(r'\b(?:20\d{2})\b')
+
+    for page_number in range(pdf_document.page_count):
+        page = pdf_document[page_number]
+        text = page.get_text()
+
+        year_found = year_pattern.search(text)
+
+        if year_found:
+            found_year = str(int(year_found.group()))
+            pdf_document.close()
+            return found_year
+
+    pdf_document.close()
+    return '0000'
