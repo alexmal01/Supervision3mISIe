@@ -1,7 +1,8 @@
 import pandas as pd
 import re
 import fitz
-from collections import Counter
+from collections import Counter, defaultdict
+import json
 
 class PDFReader:
     def __init__(self, file_path):
@@ -13,7 +14,9 @@ class PDFReader:
     
     @staticmethod
     def read_sections_template():
-        return pd.read_csv("sekcje_format.csv", sep=";", header=0)
+        df = pd.read_csv("sekcje_format.csv", sep=";", header=0)
+        return df[~df["nazwa_sekcji"].isin(["Działalność i wyniki operacyjne", "System zarządzania", "Profil ryzyka", "Wycena do celów wypłacalności", "Zarządzanie kapitałem"])]
+
     
     def extract_pdf(self):
         text = ""
@@ -32,56 +35,58 @@ class PDFReader:
                     for s in l["spans"]:
                         yield s
 
-    
-    def read_text(self):
-        ile = Counter()
+    def get_headers_text(self):
+        headers = defaultdict(list)
+        
+        # sections_counter = Counter()
         _ = self.extract_pdf()
         sekcje = list(PDFReader.read_sections_template()["nazwa_sekcji"])
 
-        configs = []
+        # configs = []
 
         # Filters to detect headlines
         size_thresh = self.get_size_filter(self.sizes)
         max_size = self.get_size_filter(self.sizes, 1)
         most_common_color = self.get_color_filter(self.colors)
         most_common_font = self.get_font_filter(self.fonts)
-
-        if_print = False
         is_header = False
-        counter=0
+        in_section = False
         for s in self.doc_iterator(self.doc):
             text = s["text"]
-            if if_print:
-                print(text)
-
+            if in_section and len(headers["text"])>0:
+                headers["text"][-1] += text
             if s["size"]>size_thresh or s["size"]==max_size or s["color"] != most_common_color or s["font"]!=most_common_font:
                 if is_header:
+                    headers["header"][-1]+=text
                     continue
-                if_print = False
+                in_section = False
                 sections_present = set(self.find_sections_by_name(sekcje, text) + self.find_sections_by_id(text))
-                # sekcje = list(set(sekcje) - sections_present)
                 if len(sections_present)>0:
+                    headers["sections_present"].append(tuple(sections_present))
+                    headers["header"].append(text)
+                    headers["size"].append(s["size"])
+                    headers["color"].append(s["color"])
+                    headers["font"].append(s["font"])
+                    headers["text"].append(text)
 
-                    # Temporary statistics
-                    ile[tuple(sections_present)]+=1
-                    # for sekcja in sections_present:
-                    #     ile[sekcja]+=1
-                    configs.append((s["size"], s["color"], s["font"]))
-
-
-                    if_print = True
+                    # sections_counter[tuple(sections_present)]+=1
+                    # configs.append((s["size"], s["color"], s["font"], tuple(sections_present)))
                     is_header = True
-                    print("________")
-                    print(sections_present)
-                    print(text)
-                    counter+=1
-                    print(counter)
+                    in_section = True
             else:
                 is_header = False
-        print(ile)
-        print("_____________")
-        print(Counter(configs))
-        return 
+
+        with open("headers.json", "w") as f:
+            json.dump(headers, f, indent=4)
+        return headers
+
+    def keyword_duplicates(keywords: list[str], texts: list[str]):
+        for text in texts:
+            keyword_counter = 0
+            for keyword in keywords:
+                if keyword in text:
+                    keyword_counter+=1
+        pass
 
     def get_size_filter(self, sizes: list, quantile: float = 0.8):
         return pd.Series(sizes).quantile(quantile)
@@ -107,10 +112,6 @@ class PDFReader:
                     section = f'{letter}{comb}{i}'
                     if len(re.findall(section, text))>0:
                         sections_present.append(section)
-
-                    section_alt = f'{letter}. {i}'
-                    if len(re.findall(section_alt, text))>0:
-                        sections_present.append(section_alt)
                     for j in range(1, 12):
                         section = f'{letter}.{i}.{j}'
                         if len(re.findall(section, text))>0:
@@ -121,12 +122,7 @@ class PDFReader:
 def main():
     pdf_reader = PDFReader("2022-SFCR-TUIR-Sprawozdanie-o-wyplacalnosci-i-kondycji-finansowej.pdf")
     pdf_reader2 = PDFReader("SFCR NN TUNZ 2021.pdf")
-    pdf_reader2.read_text()
-
-    # text_content = text_content.replace(".", " ")
-    text_content = re.sub(r'\s+', ' ', text_content)
-
-
+    pdf_reader.get_headers_text()
 
 if __name__ == "__main__":
     main()
